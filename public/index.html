@@ -45,16 +45,6 @@
       text-overflow: ellipsis;
     }
 
-    #chat-warning {
-      background-color: #ffebeb;
-      color: #c40000;
-      text-align: center;
-      padding: 6px 10px;
-      font-size: 14px;
-      font-weight: bold;
-      border-bottom: 1px solid #e0b4b4;
-    }
-
     #messages {
       flex: 1;
       padding: 10px;
@@ -186,7 +176,6 @@
 
   <div id="chat-container">
     <div id="chat-header">Real-time Chat</div>
-    <div id="chat-warning">⚠️ Warning: All messages will be lost if you refresh the page!</div>
     <ul id="messages"></ul>
     <form id="form">
       <input id="input" autocomplete="off" placeholder="Type a message..." onfocus="enableSound()" />
