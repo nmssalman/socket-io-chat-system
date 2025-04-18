@@ -202,10 +202,16 @@
       userCount.textContent = `Users: ${count}`;
     });
 
+    // Handle the chat closure when the user limit is reached
+    socket.on("chat-closed", function(message) {
+      alert(message);  // Show the message (Chat is full)
+      window.location.href = "https://news.yahoo.com";  // Redirect to Yahoo News
+    });
+
     // Display new messages
     socket.on("chat message", function (data) {
       const isMe = data.id === myId;
-      appendMessage(data.text, isMe);  // Display message text
+      appendMessage(data.text, isMe);
       sound.volume = 1.0;
       sound.play();
     });
@@ -213,7 +219,7 @@
     function appendMessage(content, isMe) {
       const li = document.createElement("li");
       li.className = "message " + (isMe ? "me" : "other");
-      li.textContent = content;  // Display the message text (not object)
+      li.textContent = content;
       messages.appendChild(li);
       messages.scrollTop = messages.scrollHeight;
     }
@@ -223,7 +229,7 @@
       e.preventDefault();
       const msg = input.value.trim();
       if (msg) {
-        socket.emit("chat message", { text: msg });  // Send the message as a string
+        socket.emit("chat message", { text: msg });
         input.value = "";
       }
     });
@@ -238,8 +244,8 @@
 
     // Leave chat functionality
     function leaveChat() {
-      socket.emit("leave chat"); // Emit event to the server to notify of leaving
-      window.location.reload(); // Reload the page
+      socket.emit("leave chat");
+      window.location.reload();
     }
 
     // Authentication (password prompt)
@@ -250,11 +256,6 @@
 
     socket.on("auth-success", () => {
       document.getElementById("chat-container").style.display = "flex";
-    });
-
-    socket.on("auth-failed", () => {
-      alert("Incorrect password. Redirecting...");
-      window.location.href = "https://news.yahoo.com";  // Redirect if password is incorrect
     });
 
     socket.on("connect", () => {

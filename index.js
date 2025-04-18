@@ -1,3 +1,6 @@
+
+//new
+
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
@@ -6,13 +9,21 @@ const server = http.createServer(app);
 const io = socketIo(server);
 
 let usersCount = 0;
-const correctPassword = "letmein"; // Set the hardcoded password
+const correctPassword = "yourPasswordHere"; // Set the hardcoded password
+const maxUsers = 2; // Limit to 2 users
 
 // Serve static files (like index.html)
 app.use(express.static('public'));
 
 // Listen for incoming socket connections
 io.on('connection', (socket) => {
+  if (usersCount >= maxUsers) {
+    // If the user limit is reached, disconnect new users and close chat
+    socket.emit('chat-closed', 'Chat is full. Closing chat...');
+    socket.disconnect();  // Disconnect the user
+    return;
+  }
+
   // Increment user count when a new user joins
   usersCount++;
   io.emit('user count', usersCount); // Emit updated user count to all clients
@@ -31,7 +42,6 @@ io.on('connection', (socket) => {
 
   // Listen for chat messages
   socket.on('chat message', (msg) => {
-     
     io.emit('chat message', { id: socket.id, text: msg.text });
   });
 
@@ -45,7 +55,7 @@ io.on('connection', (socket) => {
   // Handle disconnections
   socket.on('disconnect', () => {
     usersCount--;
-    io.emit('user count', usersCount); // Emit updated user count on disconnect
+    io.emit('user count', usersCount); // Emit updated user count after disconnect
     console.log(`A user disconnected. Total users: ${usersCount}`);
   });
 });
@@ -54,5 +64,5 @@ const PORT = process.env.PORT || 3000;  // Heroku uses process.env.PORT
 
 // Start the server on port 3000
 server.listen(PORT, () => {
-  console.log('Server is running on %s', PORT);
+  console.log('Server is running on port %d', PORT);
 });
