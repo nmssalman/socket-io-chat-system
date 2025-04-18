@@ -9,7 +9,7 @@ const server = http.createServer(app);
 const io = socketIo(server);
 
 let usersCount = 0;
-const correctPassword = "yourPasswordHere"; // Set the hardcoded password
+const correctPassword = "888"; // Set the hardcoded password
 const maxUsers = 2; // Limit to 2 users
 
 // Serve static files (like index.html)
