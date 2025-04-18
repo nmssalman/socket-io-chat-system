@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Viewport for mobile scaling -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Secure Real-time Chat</title>
   <link rel="icon" href="/favicon.ico" /> <!-- Favicon link -->
 
@@ -22,7 +22,7 @@
 
     #chat-container {
       width: 100%;
-      height: 100vh; /* Use full viewport height */
+      height: 100vh; /* Full viewport height */
       max-width: 100%;
       background-color: #fff;
       border: 1px solid #ccc;
@@ -40,9 +40,30 @@
       font-size: 18px;
       text-align: center;
       font-weight: bold;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+    }
+
+    #userCount {
+      font-size: 16px;
+    }
+
+    #leaveBtn {
+      padding: 6px 12px;
+      background: #ff4b4b;
+      color: white;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+
+    #leaveBtn:hover {
+      background-color: #e43e3e;
     }
 
     #messages {
@@ -60,22 +81,20 @@
       padding: 10px 15px;
       border-radius: 15px;
       word-wrap: break-word;
+      display: inline-block;
+      margin-bottom: 10px;
     }
 
     .me {
-      align-self: flex-end;
       background-color: #dcf8c6;
+      color: black;
+      align-self: flex-end;
     }
 
     .other {
-      align-self: flex-start;
       background-color: #eee;
-    }
-
-    .message img {
-      max-width: 100%;
-      height: auto;
-      border-radius: 10px;
+      color: black;
+      align-self: flex-start;
     }
 
     #form {
@@ -111,18 +130,6 @@
       background-color: #256bdc;
     }
 
-    #imageInput {
-      display: none;
-    }
-
-    #uploadLabel {
-      padding: 10px;
-      background: #e2e2e2;
-      border-left: 1px solid #ccc;
-      cursor: pointer;
-      font-size: 16px;
-    }
-
     /* Mobile Responsive */
     @media (max-width: 768px) {
       #chat-container {
@@ -138,10 +145,6 @@
       #input {
         font-size: 14px;
         padding: 8px;
-      }
-
-      #uploadLabel {
-        font-size: 14px;
       }
     }
 
@@ -165,22 +168,19 @@
         font-size: 12px;
         padding: 6px;
       }
-
-      #uploadLabel {
-        font-size: 12px;
-      }
     }
   </style>
 </head>
 <body>
 
   <div id="chat-container">
-    <div id="chat-header">Real-time Chat</div>
+    <div id="chat-header">
+      <div id="userCount">Users: 0</div>
+      <button id="leaveBtn" onclick="leaveChat()">Leave Chat</button>
+    </div>
     <ul id="messages"></ul>
     <form id="form">
       <input id="input" autocomplete="off" placeholder="Type a message..." onfocus="enableSound()" />
-      <label id="uploadLabel" for="imageInput">📷</label>
-      <input type="file" id="imageInput" accept="image/*" />
       <button id="sendBtn" type="submit">Send</button>
     </form>
   </div>
@@ -192,11 +192,43 @@
     const socket = io();
     const form = document.getElementById('form');
     const input = document.getElementById('input');
-    const imageInput = document.getElementById('imageInput');
     const messages = document.getElementById('messages');
+    const userCount = document.getElementById('userCount');
     const sound = document.getElementById('notificationSound');
     let myId = null;
 
+    // Update user count when a user joins or leaves
+    socket.on("user count", function (count) {
+      userCount.textContent = `Users: ${count}`;
+    });
+
+    // Display new messages
+    socket.on("chat message", function (data) {
+      const isMe = data.id === myId;
+      appendMessage(data.text, isMe);  // Display message text
+      sound.volume = 1.0;
+      sound.play();
+    });
+
+    function appendMessage(content, isMe) {
+      const li = document.createElement("li");
+      li.className = "message " + (isMe ? "me" : "other");
+      li.textContent = content;  // Display the message text (not object)
+      messages.appendChild(li);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    // Send message on form submit
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      const msg = input.value.trim();
+      if (msg) {
+        socket.emit("chat message", { text: msg });  // Send the message as a string
+        input.value = "";
+      }
+    });
+
+    // Enable sound when focusing on the input field
     function enableSound() {
       sound.play().then(() => {
         sound.pause();
@@ -204,10 +236,16 @@
       }).catch(() => {});
     }
 
+    // Leave chat functionality
+    function leaveChat() {
+      socket.emit("leave chat"); // Emit event to the server to notify of leaving
+      window.location.reload(); // Reload the page
+    }
+
     // Authentication (password prompt)
     window.onload = () => {
       const inputPassword = prompt("Enter chat password:");
-      socket.emit("auth", inputPassword);
+      socket.emit("auth", inputPassword);  // Send the password to the server for verification
     };
 
     socket.on("auth-success", () => {
@@ -216,54 +254,11 @@
 
     socket.on("auth-failed", () => {
       alert("Incorrect password. Redirecting...");
-      window.location.href = "https://news.yahoo.com";
+      window.location.href = "https://news.yahoo.com";  // Redirect if password is incorrect
     });
 
     socket.on("connect", () => {
       myId = socket.id;
-    });
-
-    socket.on("chat message", function (data) {
-      const isMe = data.id === myId;
-      appendMessage(data.text, isMe, data.isImage);
-      sound.volume = 1.0;
-      sound.play();
-    });
-
-    function appendMessage(content, isMe, isImage = false) {
-      const li = document.createElement("li");
-      li.className = "message " + (isMe ? "me" : "other");
-
-      if (isImage) {
-        const img = document.createElement("img");
-        img.src = content;
-        li.appendChild(img);
-      } else {
-        li.textContent = content;
-      }
-
-      messages.appendChild(li);
-      messages.scrollTop = messages.scrollHeight;
-    }
-
-    form.addEventListener("submit", function (e) {
-      e.preventDefault();
-      const msg = input.value.trim();
-      if (msg) {
-        socket.emit("chat message", { text: msg, isImage: false });
-        input.value = "";
-      }
-    });
-
-    imageInput.addEventListener("change", function () {
-      const file = imageInput.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function (e) {
-          socket.emit("chat message", { text: e.target.result, isImage: true });
-        };
-        reader.readAsDataURL(file);
-      }
     });
   </script>
 
